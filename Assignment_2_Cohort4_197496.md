@@ -1,55 +1,38 @@
 ## Section 1: Ambiguity and Incomplete Context
-### Q1. Consulting Case: Messy Client Problem
+### Q1.Consulting Case -  Messy Client Problem
 **Prompt**
-> You are a senior consulting analyst. A telecom client has shared a messy paragraph on declining ARPU, with no structured data and conflicting stakeholder opinions. Use only the input below. Do not add outside knowledge or invent figures, dates, or causes.
-> 1. **Extract claims.** List each factual claim and label it *stated* (in the text) or *attributed* (someone's opinion).
-> 2. **Flag contradictions.** Quote conflicting statements and leave them unresolved.
-> 3. **Propose hypotheses.** Give 3 to 5 explanations for declining ARPU. For each: the hypothesis, supporting evidence from the input (or "none stated"), a confidence level (High, Medium, Low) with a one-sentence reason, and the key assumption.
-> 4. **List missing data.** Name the data needed to test each hypothesis and why it matters.
-> 5. **Recommend next steps.** Give the 3 most useful actions, in priority order, and the hypothesis each one tests.
-> If something cannot be supported from the input, write "Not provided in input." Do not give a single confident root-cause conclusion.
-> Input:
-> [paste messy paragraph]
+> Consider yourself as a Senior consulting analyst working with a Telecom client. The client has provided a messy paragraph containing information on declining ARPU and the data is unstructured. Stakeholders have expressed conflicting opinions about the cause. You have to analyze only the material provided. Do not use information about the client from anywhere else to fill the gaps and do not invent any other information apart from the paragraph provided. Follow the steps and label each section clearly.
+> 1.**Figure out claims** List each factual claim and label them.
+> 2.**Flag Conflicts** Quote the conflicting statements and do not resolve them. List them side by side for better understanding
+> 3.**Problem hypotheses** Provide 3 to 5 pointer explanations for declining ARPU. For each of the pointer, give the hypothesis, supporting evidence from the input or mention not available, a confidence level with a one sentence reason, and the key assumption.
+> 4.**Identify and list missing data** Name the data needed to test each hypothesis and why it matters
+> 5.**Suggest next steps** Give the 3 most useful actions, in priority order, and the hypothesis each one tests.
+> For arriving at this, if something is not available in the provided input, mention "Not provided in input". Do not assume and provide a confident hypothesis.
 
-**a. Why this structure?** It runs from facts to interpretation to action, so the model settles what is known before reasoning about causes. The uncertainty rule covers every step.
-
-**b. Why this technique?** Zero-shot with numbered steps. The task is clear enough that examples aren't needed, and the sequence forces the factual layer to come first. I avoided open-ended chain-of-thought, which tends to produce confident narratives from messy input.
-
+**a. Why this structure?** This prompt will first focus on facts provided and then move towards interpretations. it figures out facts first, handles conflicts and then works on the hypothesis.
+**b. Why this technique?** Zero-shot prompting is used here. The expected output and the task is clear. COT could provide false confident narratives from this messy input
 **c. Failure modes prevented**
-- **Hallucinated figures:** The ban on invented numbers and the "Not provided" rule block made-up ARPU data.
-- **Silently picking a side:** Step 2 requires contradictions to stay unresolved.
-- **False confidence:** Confidence levels need a reason, and a single root-cause conclusion is banned.
+- **Hallucinated figures:** The prompt tells the model to list only the facts stated in the input and not assume or invent numbers. Also it has been asked to mention "Not provided in input"
+- **Ignoring Contradictions:** Step 2 requires contradictions to stay unresolved not pick any stakeholders opinion.
+- **False confidence:** The prompt requires a confidence level for each hypothesis
 - **Outside knowledge creep:** The input-only rule stops generic telecom trends from being imported.
 
-**Alternative design:** A few-shot version with one worked example (a short messy paragraph and ideal output) before the real input. It helps if the format keeps drifting, but it risks the model copying the example's content. Add "The example is for format only" to guard against that.
+**Alternative design:** Few-shot prompting can be used with one example of an output before providing the input.
 
-### Q2. Healthcare Risk Scenario
-
+### Q2.Healthcare Risk Scenario
 **Prompt**
-
-> You are a clinical documentation assistant supporting a doctor. The input is a rough, inconsistent patient summary. You are not making a diagnosis. Your role is to organize what is documented and highlight what is uncertain.
->
-> Use only the information in the summary. If something is missing or contradictory, say so.
->
-> 1. **Summarize the documented findings.** List symptoms, history, and test results exactly as stated, noting any inconsistencies between entries.
-> 2. **List possible diagnoses.** Give 3 to 5 conditions that could plausibly explain the findings. For each, state a confidence level (Low, Medium, High) and the specific findings that support it and the ones that argue against it.
-> 3. **Flag risky assumptions.** Identify any assumption a clinician might make from this summary that the data does not support.
-> 4. **Unknowns.** List the information needed to narrow or rule out each possibility (for example: specific lab values, timeline, medication list).
->
-> Do not state or imply a definitive diagnosis. Do not recommend treatment. End with: "This is decision support only and does not replace clinical judgment."
->
-> Patient summary:
-> [paste summary]
-
+> Consider yourself as a clinical documentation specialist assisting a doctor. The input is a rough written, inconsistent patient summary. You are not required to make a definitive diagnosis. Your role is to just organize what is documented in input and highlight what is uncertain. Mention that this is not a definitive diagnosis and cannot be used to replace clinical judegement.
+> Use only the information in the summary and do not assume anything. If any details are missing or conflicting, mention them.
+> 1.**Summarize the findings** Provide all the symptoms, patient medical history and lab/test results exactly as provided in input, also highlighting any inconsistencies in the input
+> 2.**List possible diagnoses** Provide maximum 5 conditions that could explain the findings. For each of the findings, provide a confidence level and the specific findings that support it and  those against it.
+> 3.**Flag risky assumptions** Identify and list any assumptions can be falsely made by the doctor
+> 4.**Include unknowns** List all the unknowns and rule out each possibility and list them too
 **a. Why this structure?** It separates documentation (what is recorded) from interpretation (what it might mean) and from risk (where interpretation goes wrong). That keeps the model from merging facts and guesses into a single confident-sounding story.
-
-**b. Why this technique?** Zero-shot with explicit constraints. The task has clear rules (no diagnosis, no treatment), and examples could push the model toward the example's conclusions. Explicit numbered steps prevent the model from skipping the "unknowns" section, which the assignment requires.
-
+**b. Why this technique?** Zero-shot prompting would work for this because the ask is simple and clear. no definitive diagnosis / treatment plan is required to be given.
 **c. Failure modes prevented**
-- **Definitive diagnosis:** The prompt bans definitive conclusions and treatment advice.
-- **Unsupported confidence:** Each diagnosis needs a confidence level plus supporting and opposing findings.
-- **Missing unknowns:** A dedicated step forces a list of gaps, so they can't be skipped.
-- **Silent correction of messy data:** Step 1 requires inconsistencies to be reported, not smoothed over.
+- **Definitive diagnosis** The prompt mentions not to provide any definitive diagnosis and treatment plan
+- **Unsupported confidence** Each diagnosis needs a confidence level to be listed
+- **Missing unknowns** A dedicated step forces a list of gaps, so they can't be skipped.
 
 **Alternative design:** A two-pass approach. First, a prompt that only extracts and standardizes the summary and reports inconsistencies. Second, a separate prompt that receives that clean output and produces differentials. This reduces the chance that errors in the raw notes shape the differential, at the cost of an extra step.
 
