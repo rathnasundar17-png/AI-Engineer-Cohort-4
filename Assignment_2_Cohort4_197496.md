@@ -1,19 +1,13 @@
-# Prompt Engineering on Real-World Scenarios
-
 ## Section 1: Ambiguity and Incomplete Context
 
 ### Q1. Consulting Case: Messy Client Problem
-
 **Prompt**
-
 > You are a senior consulting analyst. A telecom client has shared a messy paragraph on declining ARPU, with no structured data and conflicting stakeholder opinions. Use only the input below. Do not add outside knowledge or invent figures, dates, or causes.
->
 > 1. **Extract claims.** List each factual claim and label it *stated* (in the text) or *attributed* (someone's opinion).
 > 2. **Flag contradictions.** Quote conflicting statements and leave them unresolved.
 > 3. **Propose hypotheses.** Give 3 to 5 explanations for declining ARPU. For each: the hypothesis, supporting evidence from the input (or "none stated"), a confidence level (High, Medium, Low) with a one-sentence reason, and the key assumption.
 > 4. **List missing data.** Name the data needed to test each hypothesis and why it matters.
 > 5. **Recommend next steps.** Give the 3 most useful actions, in priority order, and the hypothesis each one tests.
->
 > If something cannot be supported from the input, write "Not provided in input." Do not give a single confident root-cause conclusion.
 >
 > Input:
