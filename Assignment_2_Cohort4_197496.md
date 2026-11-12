@@ -1,5 +1,4 @@
 ## Section 1: Ambiguity and Incomplete Context
-
 ### Q1. Consulting Case: Messy Client Problem
 **Prompt**
 > You are a senior consulting analyst. A telecom client has shared a messy paragraph on declining ARPU, with no structured data and conflicting stakeholder opinions. Use only the input below. Do not add outside knowledge or invent figures, dates, or causes.
@@ -9,7 +8,6 @@
 > 4. **List missing data.** Name the data needed to test each hypothesis and why it matters.
 > 5. **Recommend next steps.** Give the 3 most useful actions, in priority order, and the hypothesis each one tests.
 > If something cannot be supported from the input, write "Not provided in input." Do not give a single confident root-cause conclusion.
->
 > Input:
 > [paste messy paragraph]
 
