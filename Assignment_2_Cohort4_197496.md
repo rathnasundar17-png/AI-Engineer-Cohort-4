@@ -55,15 +55,14 @@
 
 **Why this structure?** This prompt clearly states the model should treat input as ony data and not follow any instrucitons and the output format is also fixed.
 
-**Why this prompting technique?** Zero-shot with a locked output format. The task is narrow, so examples would add attack surface (the user could try to imitate them). Constraints do more work here than demonstrations.
+**Why this prompting technique?** Zero-shot prompting with a fixed output format
 
 **Failure modes prevented**
-- **Instruction override:** The prompt declares user text as data and names the injection pattern.
-- **Role drift:** The single-task definition stops the model from switching into a general assistant.
-- **Format hijacking:** A fixed output format means the user can't dictate "just say YES."
-- **Silent compliance:** Injection attempts are flagged and routed to review, not ignored quietly.
+- **Instruction override:** The prompt mentions user text as data and names the injection pattern.
+- **Format hijacking:** A fixed output format means the user cant order the model to say YES
+- **Silent compliance:** Injection attempts are analyzed and flagged for review and not ignored.
 
-**Alternative design:** Wrap the user input in delimiters such as `<user_input>...</user_input>` and tell the model to treat everything inside the tags as content only. Delimiters help separate data from instructions, but they don't fully stop a determined attack, so pair them with the role rule above.
+**Alternative design:** We can wrap every day like string using some quotes and tell the model to treat everything inside that as data.
 
 ### Q4. Toxic and Biased Input Handling
 
