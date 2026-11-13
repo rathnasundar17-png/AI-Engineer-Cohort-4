@@ -68,102 +68,80 @@
 
 **Prompt**
 
-> You are an analyst reviewing a piece of feedback for a performance review. The input may contain gender-biased assumptions and emotionally charged language. Your job is to extract the substance without repeating the bias or the tone.
+> Consider yourself as an analyst reviewing a piece of feedback for a performance review. The input contains gender biased assumptions and emotionally charged language. you have to extract the content without repeating the bias or the tone.
 >
-> 1. **Separate facts from judgments.** List the concrete, observable claims in the input (what was done, when, with what result).
-> 2. **Identify biased or charged language.** Quote any gendered assumptions (for example, comments about tone or temperament that are not tied to specific behavior) and any emotionally loaded wording. For each, state the neutral equivalent.
-> 3. **Rewrite the substance.** Produce a neutral summary of the feedback using only the observable claims from step 1. Preserve any specific, valid concern, even if it was expressed harshly.
-> 4. **Note what was dropped.** List any statements removed because they were unsupported or purely evaluative, and why.
+> 1. **Separate facts from judgments.** List concrete claims in the input
+> 2. **Identify biased or charged language.** Mention any gendered assumptions like contents that are about tone etc that are not tied to specific behavior) and any emotionally wrong wording. For each, state the neutral equivalent.
+> 3. **Rewrite the substance.** Provide a neutral summary of the feedback using only facts from step 1. Preserve any valid concern
 >
-> Do not ignore the input. If the feedback contains a legitimate concern, it must appear in the rewritten summary.
->
-> Input:
-> [paste feedback]
+> Do not ignore the input completely. If the feedback contains a legitimate concern, it must appear in the rewritten summary.
 
-** Why this structure?** Separating facts from judgments first gives the model a neutral base before it rewrites. Keeping the rewrite as a separate step makes the changes visible, so a reviewer can check what was altered.
+** Why this structure?** Separating facts from judgments first gives the model a neutral base before it rewrites.
 
-** Why this prompting technique?** Zero-shot with explicit steps. The task is a transformation with clear rules, and examples risk teaching the model a particular "neutral" style that may not match the input.
+** Why this prompting technique?** Zero-shot prompting with requested steps. The task is a transformation with clear rules and examples provided.
 
 ** Failure modes prevented**
 - **Reproducing bias:** Step 2 identifies gendered language before it reaches the output.
-- **Over-correction (ignoring the input):** The instruction to preserve valid concerns prevents the model from deleting the substance.
-- **Unexplained edits:** Step 4 records what was removed, so the transformation is auditable.
-- **Editorializing:** The rewrite is limited to observable claims, which blocks the model from adding its own judgment.
+- **ignoring the input:** The instruction to preserve valid concerns prevents the model from deleting the substance.
 
 **Alternative design:** A single-pass rewrite prompt ("Rewrite this feedback neutrally, keeping all specific concerns"). It is shorter and faster, but it hides what was changed, so it's weaker for any case where the edits need to be checked.
 
 ## Section 3: Multi-Step Reasoning Design
-
 ### Q5. Financial Fraud Detection
-
 **Prompt**
 
-> You are a fraud analyst reviewing synthetic transaction summaries. Your task is to identify suspicious patterns and assign a risk score. Base every conclusion only on the data provided.
+> Consider yourself as a fraud analyst reviewing synthetic transaction summaries. Your task is to identify suspicious patterns and assign a risk score. Arrive at conclusions only based on the data provided.
 >
-> Work through these steps in order:
+> Work through these steps in order:>
+> 1. **Describe the data** Summarize volume, amounts, timing, and counterparties as stated. Note any missing fields.
+> 2. **Check patterns.** Test each of these and report whether the data shows it: unusual amount relative to the account history, frequent sequence of transfers, new or repeated counterparties, transactions just below reporting thresholds. Say "Not observable" where the data lacks what is needed.
+> 3. **Explain reasoning** For each pattern found, give the specific transactions an explanation
+> 4. **Score risk.** Assign each flagged pattern a score from 1 to 5 and a confidence level and Then give an overall score with a one sentence justification.
 >
-> 1. **Describe the dat** Summarize volume, amounts, timing, and counterparties as stated. Note any missing fields.
-> 2. **Check patterns.** Test each of these and report whether the data shows it: unusual amount relative to the account's history, rapid sequences of transfers, new or repeated counterparties, transactions just below reporting thresholds, timing outside normal activity. Say "Not observable" where the data lacks what is needed.
-> 3. **Explain reasoning.** For each pattern found, give the specific transactions that show it and one alternative explanation (such as a legitimate business reason).
-> 4. **Score risk.** Assign each flagged pattern a score from 1 to 5 and a confidence level (Low, Medium, High). Then give an overall score with a one-sentence justification.
->
-> Do not describe a story about the account holder's intent. Do not state that a transaction is fraudulent; use "suspicious" or "warrants review." If the data is insufficient for a conclusion, say so.
->
-> Output as a table for step 4, followed by a short written summary.
->
-> Transactions:
-> [paste summaries]
+> Do not create a story about the account holder's intent. Do not state that a transaction is fraudulent; use "suspicious". If the data is insufficient for a conclusion, mention that.
 
-**Choice: Controlled reasoning, not Chain of Thought or Tree of Thought.** Chain of Thought lets the model build a narrative, which is exactly the "storytelling hallucination" the assignment warns against. Tree of Thought explores many branches, which adds cost and more room for invented explanations. Controlled reasoning uses a fixed sequence of checks, each tied to specific data, so the model shows its work without inventing a plot. The trade-off is that it can miss patterns not on the checklist.
+**Decision: Controlled reasoning, not Chain of Thought or Tree of Thought.** Chain of Thought lets the model build a narrative, which is exactly the "storytelling hallucination" we are not expected to do. Tree of Thought will adds cost and more room for invented explanations. Controlled reasoning uses a fixed sequence of checks, each tied to a data pattern, so the model shows its work without inventing a plot.
 
-** Why this structure?** The steps mirror how an analyst works: describe, test, explain, score. Each step's output feeds the next, so scores rest on checked evidence.
+** Why this structure?** The model explain what order should the task be done. each step feeds the next and scores are determined based on evidence.
 
 ** Why this prompting technique?** Controlled reasoning with a fixed checklist, as explained above.
 
 ** Failure modes prevented**
 - **Overconfidence:** Confidence levels plus the required alternative explanation for each pattern.
 - **Storytelling hallucination:** The ban on intent narratives and the "Not observable" option.
-- **False accusation:** The required wording ("warrants review") keeps output from declaring fraud.
-- **Invented data:** The "note missing fields" step blocks gap-filling.
+- **False accusation:** The required wording "suspicioys" requests for review and doesnt falsely accuse
+- **Invented data:** The note missing fields step blocks gap filling.
 
-**Alternative design:** A Chain of Thought version asking the model to "think step by step" through each transaction. It can catch patterns the checklist misses, but it is more likely to produce a plausible story, so it needs the same guardrails added back.
+**Alternative design:** A Chain of Thought version asking the model to think step by step through each transaction. It can catch patterns the checklist misses, but it is more likely to produce a plausible story, so it needs the same guardrails added back.
 
 ### Q6. Strategy Recommendation Under Uncertainty
-
 **Prompt**
 
-> You are a strategy consultant advising on the question: "Should we enter the EV market in India?" The available information is limited, and no figures are provided unless stated below.
+> Consider yourself as a strategy consultant advising on the question: "Should we enter the EV market in India?" Note that the available information is limited.
 >
-> 1. **Break it into sub-decisions.** List 4 to 6 questions that must be answered first (for example: demand, competition, supply chain, regulation, capital required, timing).
-> 2. **Set decision criteri** Define 3 to 5 explicit criteria for a "go" decision (for example: payback period, market access, risk tolerance), with the threshold for each. Mark any threshold you assume as an assumption.
-> 3. **Evaluate scenarios.** Describe 3 scenarios (base, optimistic, pessimistic). For each, state the conditions that must hold and the criteria it meets or fails.
-> 4. **Argue both sides.** Give the strongest case for entry and the strongest case against. Each must be at least three sentences.
-> 5. **Recommend.** State a recommendation (enter, delay, or do not enter), the criteria that drive it, and what new information would change it.
+> 1. **Break it into decisions.** List 4 to 6 questions that must be answered first (for example: demand, competition, supply chain, EV regulations etc).
+> 2. **Set decision criteria** Define 3 to 5 explicit criteria for a enter decision with the threshold for each. Mark any threshold you assume as an assumption.
+> 3. **Evaluate scenarios.** Describe 3 scenarios. For each, state the conditions that must hold and the criteria it meets or fails.
+> 4. **Argue both sides.** Give the strongest case for entry and the strongest case against. Each must be at least 3 sentences.
+> 5. **Recommend.** State a recommendation - enter, delay, or do not enter. the criteria that drive it, and what new information would change it.
 >
-> Do not cite market size or growth figures unless they are provided in the input. Mark any external claim as "to be verified."
->
-> Context provided:
-> [paste any client details]
+> Do not provide market size or growth figures unless they are provided in the input. Mark any external claim as "to be verified."
 
-** Why this structure?** It moves from framing (sub-decisions and criteria) to analysis (scenarios and counterarguments) to decision. Setting criteria before scenarios prevents the model from choosing criteria that fit its preferred answer.
+** Why this structure?** It moves from framing to analyzing scenarios and counterarguments to decision. Setting criteria before scenarios prevents the model from choosing criteria that fit its preferred answer.
 
-** Why this prompting technique?** Zero-shot with structured steps. The reasoning is multi-part, so explicit steps matter more than examples. Few-shot would anchor the model to one example's industry and conclusions.
+** Why this prompting technique?** Zero-shot prompting with structured steps.
 
 ** Failure modes prevented**
-- **Invented market data:** The no-figures rule and "to be verified" tag.
+- **Invented market data:** The nofigures rule and to be verified tag.
 - **One-sided advice:** Required counterarguments on both sides.
-- **Criteria drift:** Criteria are fixed in step 2, before any scenario is evaluated.
 - **False precision:** The recommendation depends on named criteria and a list of what would change it.
 
-**Alternative design:** A two-call process. The first call produces sub-decisions and criteria; the second evaluates scenarios against the approved criteri This separates framing from judgment and reduces anchoring, but it requires a human check between steps.
-
-## Section 4: Few-Shot vs. Zero-Shot Judgment
-
+## Section 4: Few-Shot vs Zero-Shot Judgment
 ### Q7. Classification with Edge Cases
 
 **Zero-shot prompt**
 
-> Classify the customer complaint into exactly one category: Billing, Network, Device, or Other.
+> Classify the customer complaint into exactly one category: Billing, Network, Device or Other.
 >
 > Definitions:
 > - Billing: charges, invoices, payment, refunds, plan pricing
@@ -171,172 +149,131 @@
 > - Device: phone or equipment hardware, software on the device, setup
 > - Other: anything that does not clearly fit the above
 >
-> If a complaint fits two categories, choose the one the customer's main problem falls under. Output the category and a one-sentence reason.
->
-> Complaint:
-> [text]
+> If a complaint fits two categories, choose the one the customers main problem falls under. Output the category and provide a one sentence reason.
 
 **Few-shot prompt**
 
-> Classify the customer complaint into exactly one category: Billing, Network, Device, or Other. Use the examples below to guide your judgment.
+> Classify the customer complaint into exactly one category: Billing, Network, Device or Other. Use the examples below to guide your judgment.
 >
 > Examples:
-> - "I was charged twice this month and the second charge won't reverse." → Billing. The core problem is the charge, even though a device was used.
-> - "My phone shows full bars but the data keeps timing out in my building." → Network. The signal appears strong, but the failure is connectivity.
-> - "My new SIM won't activate and the store says it's a network issue." → Device. The problem starts with the SIM and setup, despite the network mention.
-> - "I want to cancel and I'm unhappy with customer service." → Other. No product or service category is the core problem.
+> - "I was charged twice this month and the second charge wont revert" for Billing. The core problem is the charge, even though a device was used.
+> - "The signal strength is not constant, its weak sometimes and strong sometimes in the same location" for Network. The signal appears to be strong but the problem is with connectivity
+> - "My new SIM wont activate and the store says it's a network issue." for Device. The problem starts with the SIM and setup, despite the network mention.
+> - "I want to cancel and I am unhappy with customer service." for Other. No product or service category is the core problem.
 >
-> Rule: classify by the customer's main problem, not by the words they use.
->
+> Rule: classify by the customer's main problem, not by the words they use. Try to make sense out of the entire statement not just pieces
 > Output the category and a one-sentence reason.
->
-> Complaint:
-> [text]
+**Why few-shot helps (or doesn’t)** The edge cases here depend on judgment about which problem is primary, and examples show that rule better than a definition does.
 
-**Why few-shot helps (or doesn't):** The edge cases here depend on judgment about which problem is primary, and examples show that rule better than a definition does. Each example teaches a specific trap (a device mention that is really billing, a network mention that is really setup). It doesn't help much for clear-cut complaints, which zero-shot already handles.
-
-**When it breaks:** Few-shot can bias the model toward the example categories, so a new edge case that looks like one example may be misfiled. It also grows expensive with many examples, and it can fail when the examples are unrepresentative of the real complaint volume. The examples should be checked against real data, not just chosen because they look clean.
+**When it breaks:** Few-shot can bias the model toward the example categories, so a new edge case that looks like one example may be misled. It also grows expensive with many examples, and it can fail when the examples are unrepresentative of the real complaint volume. The examples should be checked against real data, not just chosen because they look clean.
 
 ** Why this structure?** Both versions share the same category definitions, so the only variable is examples. This makes the comparison fair.
-
-** Why this prompting technique?** Zero-shot for clear cases; few-shot for the edge-case rule. The combined recommendation is to use zero-shot as the default and add examples only for overlaps the zero-shot version gets wrong.
+** Why this prompting technique?** Zero-shot prompting for clear cases
 
 ** Failure modes prevented**
-- **Ambiguous overlap:** The tie-breaking rule in the zero-shot version and the main-problem rule in the few-shot version.
-- **Misfiling by keyword:** The few-shot examples show that surface words like "device" or "network" can mislead.
-- **Overuse of Other:** The Other definition is explicit, so the model doesn't default to it.
+- **Ambiguous overlap:** The tie breaking rule in the zero shot version and the main problem rule in the few shot version.
+- **Misfiling by keyword:** The few-shot examples show that some words like "device" or "network" can mislead.
 
-**Alternative design:** Test both prompts on a labeled set of 30 to 50 complaints and compare error rates by category. This turns the choice into evidence rather than opinion.
+**Alternative design:** Test both prompts on a labeled set of 30 to 50 complaints and compare error rates by category
 
 ## Section 5: Output Control and Format Engineering
-
 ### Q8. Executive-Ready Output
 
 **Prompt**
 
-> You are preparing a briefing for senior leadership. Be crisp and action-oriented. Use only the information provided.
+> You are preparing a briefing for senior leadership. Be concise, crisp and action oriented. Work with only the information provided.
 >
-> Output in this format:
+> Output in the below format:
 >
 > **Bottom line (max 2 sentences):** The key finding and the recommended action.
->
 > **Key insights (3 bullets max):** Each bullet is one sentence with a number or specific fact where available.
->
-> **Options table:** Columns: Option | Benefit | Cost or risk | Recommendation (Yes / No / Conditional). Maximum 3 rows.
->
+> **Options table:** Columns: Option, Benefit,Cost or risk,Recommendation (Yes/No/Conditional). Maximum 3 rows.
 > **Decisions needed (max 3):** Each as a yes/no or choice question with a deadline if one is stated.
->
-> Rules: No introductions or closing remarks. No sentence over 25 words. If data is missing, write "Data gap:" followed by what is missing.
->
-> Source material:
-> [paste]
+> Rules: No introductions or closing remarks. No sentence over 20 words. If data is missing mention "Data gap:" followed by what is missing.
 
-** Why this structure?** Each section has a hard limit (sentences, bullets, rows), which controls length in a way that "be concise" does not. The format puts the conclusion first, which is how executives read.
+** Why this structure?** Each section has a hard limit (sentences, bullets, rows). The format puts the conclusion first which is how executives read.
 
-** Why this prompting technique?** Zero-shot with a strict output template. The format is the main requirement, and a template does more to enforce it than examples do.
+** Why this prompting technique?** Zero-shot prompt with a fixated output template. The format is the main requirement
 
 ** Failure modes prevented**
-- **Verbosity:** Numerical limits on each section and sentence.
+- **Limits** Numerical limits on each section and sentence.
 - **Buried conclusions:** The bottom line comes first.
-- **Unsupported numbers:** Only information provided may be used, and gaps are labeled.
+- **Unsupported numbers:** Only information provided may be used and gaps are labeled.
 - **Vague actions:** Decisions must be framed as choices, which forces specificity.
 
-**Alternative design:** A version that generates a long analysis first, then a second call that compresses it into the template. This keeps quality higher on complex inputs but doubles cost and can lose nuance in compression.
+**Alternative design:** A version that generates a long analysis first then a second call that compresses it into the template. 
 
 ### Q9. Dual Audience Problem
 
 **Prompt**
-
 > You will receive a data summary and must produce output for one of two audiences. Read the audience setting first and follow the matching rules.
 >
-> **Audience:** [Technical or Business]
+> **Audience:** Tech/ Business
 >
-> If **Technical**: Give full methodology notes, state assumptions and their sensitivity, show calculations, list data quality issues with specific fields, and use precise terminology. Include limitations in detail. Length: as needed for completeness.
+> If **Technical**: Give full methodology notes, state assumptions and their sensitivity, show calculations, list data quality issues with specific fields, and use precise terminology. Include limitations in detail. 
 >
-> If **Business**: Lead with the implication. Use plain language, no unexplained jargon, and no more than 150 words. Give one recommended action and one key risk. Put methodology in a single line at the end, only if essential.
+> If **Business**: Use plain language, no unexplained jargon, and not more than 150 words. Give one recommended action and one key risk. Put methodology in a single line at the end
 >
 > In both cases, use only the input dat Do not change the findings between versions. If a figure appears in one version, it must appear in the other with the same value.
->
-> Input data:
-> [paste]
 
-** Why this structure?** The audience switch sits at the top, so the model applies the right ruleset from the start. The consistency rule ensures both versions report the same findings, which is the real risk in dual-audience output.
+** Why this structure?** the model applies the right ruleset from the start. The consistency rule ensures both versions report the same findings
 
-** Why this prompting technique?** Zero-shot with conditional instructions. The variation is rule-based rather than stylistic, so conditions are clearer than examples.
+** Why this prompting technique?** Zero-shot prompting with conditional instructions
 
 ** Failure modes prevented**
 - **Divergent findings:** The consistency rule keeps the numbers and conclusions aligned.
-- **Business version hiding limits:** A single methodology line is required, so the simplification is visible.
-- **Technical version bloat:** The full-detail rule is paired with a completeness target, not an open length.
 - **Jargon leakage:** The business rules ban unexplained terms.
 
-**Alternative design:** Generate the technical version once, then a second prompt rewrites it for business readers, passing the technical output in as the source. This guarantees consistency by construction, but it chains two prompts, which the assignment does not allow here, so use this only as a real-world recommendation.
+**Alternative design:** Generate the technical version once, then a second prompt rewrites it for business readers passing the technical output in as the source.
 
-## Section 6: Meta Prompting and Self-Critique
-
+## Section 6: Meta Prompting + Self-Critique
 ### Q10. Self-Improving Prompt
 
 **Prompt**
-
 > Complete the task below in three labeled stages. Do not exceed one revision cycle.
 >
-> **Stage 1: Answer.** Produce your best answer to the task.
+> **Step 1: Answer.** Produce your best answer to the task.
 >
-> **Stage 2: Critique.** Identify up to 3 specific weaknesses in your Stage 1 answer. Each must name a concrete problem (a missing fact, an unsupported claim, an unclear step). Limit the critique to 100 words. Do not critique style unless it affects accuracy or clarity.
+> **Step 2: Critique.** Identify up to 3 specific weaknesses in your Stage 1 answer. Each must name a concrete problem (a missing fact, an unsupported claim, an unclear step). Limit the critique to 100 words. Do not critique style unless it affects accuracy or clarity.
 >
-> **Stage 3: Revised answer.** Rewrite the answer to fix only the weaknesses from Stage 2. Keep everything else unchanged. Do not add new critiques.
->
-> Task:
-> [task]
+> **Step 3: Revised answer.** Rewrite the answer to fix only the weaknesses from Stage 2. Keep everything else unchanged. Do not add new critiques.
 
-** Why this structure?** Three labeled stages make each step visible and separately checkable. Limiting the critique to specific weaknesses keeps it from becoming an endless self-review.
+** Why this structure?** Three labeled stages make each step visible and separately checkable. Limiting the critique to specific weaknesses keeps it from becoming an endless self review.
 
-** Why this prompting technique?** Zero-shot with a fixed revision loop. The critique is a built-in reflection step, and one cycle is enforced by the instructions, not left open.
+** Why this prompting technique?** Zero-shot prompting with a fixed revision loop
 
 ** Failure modes prevented**
 - **Infinite loops:** The explicit one-cycle limit.
-- **Bloated critique:** The 100-word cap and the "up to 3" limit.
-- **Cosmetic-only revisions:** The critique must target accuracy or clarity, not style.
-- **Scope creep in revision:** Stage 3 fixes only the named weaknesses.
-
-**Alternative design:** A version where the critique is done by a second, separate prompt. This can catch errors the same model overlooks, but it doubles cost and needs its own guardrails.
+- 
+**Alternative design:** A version where the critique is done by a second and separate prompt. This can catch errors the same model overlooks but it doubles cost and needs its own guardrails.
 
 ### Q11. Prompt Evaluation Framework
-
 **Prompt**
 
-> You are evaluating another prompt. Score it on each criterion from 1 (poor) to 5 (excellent), and give one sentence of evidence for each score.
+> You are evaluating another prompt. Score it on each criterion from 1 to 5, poor to excellent, and give one sentence of evidence for each score.
 >
 > **Criteria:**
-> - **Clarity:** Is the task stated unambiguously? Are the output requirements specific? Could two readers interpret it differently?
-> - **Robustness:** Does it handle missing data, contradictory input, and attempts to override instructions? Does it state what to do when information is absent?
+> - **Clarity:** Is the task stated clearly? Are the output requirements specific? Could two readers interpret it differently?
+> - **Robustness:** Does it handle missing data, attempts to override instructions? Does it state what to do when information is absent?
 >
-> Output as a table: Criterion | Score | Evidence. Then list the single most important fix for each criterion. Do not rewrite the prompt.
->
-> Prompt to evaluate:
-> [paste prompt]
+> Output as a table: Criterion,Score,Evidence. Then list the single most important fix for each criterion. Do not rewrite the prompt.
 
-** Why this structure?** Defining each criterion with specific questions makes scores comparable across prompts. The "no rewrite" rule keeps the evaluator in its role.
+** Why this structure?** Defining each criteria with specific questions makes scores comparable across prompts. The no rewrite rule keeps the evaluator in its role.
 
-** Why this prompting technique?** Zero-shot with a rubri A rubric is a more reliable way to standardize scoring than examples.
+** Why this prompting technique?** Zero-shot prompting is more reliable way to standardize scoring than examples.
 
 ** Failure modes prevented**
-- **Vague scores:** Each score needs evidence.
-- **Rubric drift:** Criteria are defined with concrete questions.
-- **Evaluator overreach:** The no-rewrite rule keeps feedback diagnosti
+- **Unclear scores:** Each score needs evidence.
 
-**Alternative design:** A pairwise version that compares two prompts and asks which is more robust on specific test inputs. This is more discriminating, but it needs test cases.
+**Alternative design:** a version that compares two prompts and asks which is more robust on specific test inputs. 
 
 ## Section 7: Real Failure Simulation
-
 ### Q12. When the Model Is Wrong
 
 **Prompt**
-
 > A previous answer was delivered with high confidence but may be incorrect. Re-evaluate it without defending it.
 >
-> **Previous answer:**
-> [paste]
+> **Previous answer:** (provide)
 >
 > 1. **List the assumptions.** Identify every assumption the previous answer relied on, stated or implied.
 > 2. **Test each assumption.** For each, state whether the input supports it, contradicts it, or does not address it.
@@ -348,65 +285,56 @@
 
 ** Why this structure?** Listing assumptions before judging the conclusion exposes where errors usually hide. The model can't simply re-argue its original answer.
 
-** Why this prompting technique?** Zero-shot with a structured audit. The failure is one of confidence, so the prompt forces a step-by-step test instead of a quick second opinion.
+** Why this prompting technique?** Zero-shot prompting. The failure is one of confidence, so the prompt forces a step by step test instead of a quick second opinion.
 
 ** Failure modes prevented**
 - **Defending the original answer:** The instruction not to preserve the conclusion.
 - **Hidden assumptions:** Step 1 surfaces them.
-- **Fabricated corrections:** The ban on new facts.
+- **Created corrections:** The ban on new facts.
 - **Unexamined confidence:** Step 5 requires a new confidence level tied to evidence.
 
-**Alternative design:** Ask the model to answer the original question again from scratch, without seeing its previous answer, then compare the two. This can expose anchoring, but it costs an extra call and may not reveal a specific flawed assumption.
+**Alternative design:** Ask the model to answer the original question again from scratch, without seeing its previous answer, then compare the two. 
 
 ## Final Challenge
 
 ### Q13. Designing a Prompting Strategy
-
-**Scenario:** An AI assistant for consulting teams that handles document extraction, analysis, and review.
+**Scenario:** An AI assistant for consulting teams that handles document extraction, analysis, and review
 
 **Strategy overview**
-
 **1. Data extraction (zero-shot, strict format)**
-- Use a zero-shot prompt that pulls specified fields (figures, dates, named sources) into a fixed schem
+- Use a zero-shot prompt that pulls specified fields - figures, dates, named sources
 - Require a "not stated" value for any missing field and a source quote for every extracted figure.
-- *Why zero-shot:* Extraction rules are clear and consistent. Examples can cause the model to copy values from the example.
+- Why zero-shot - Extraction rules are clear and consistent. Examples can cause the model to copy values from the example.
 
-**Example extraction prompt:**
+**Sample extraction prompt:**
 
-> Extract the following fields from the document below into this JSON schem Use only text that appears in the document. For any field not present, use "not stated." For every numeric value, include the source sentence.
+> Extract the following fields from the document below into this JSON only text that appears in the document. For any field not present, use "not stated." For every numeric value, include the source sentence.
 >
 > Schema: {"client_name", "metric", "value", "period", "source_sentence"}
 >
-> Document:
-> [paste]
-
-**2. Reasoning (controlled, enforced where needed)**
-- Use structured reasoning (the controlled checklist from Q5) for analysis tasks such as diagnosing a performance drop or comparing options.
-- Use few-shot examples only for classification tasks with recurring edge cases (such as Q7), and only after testing zero-shot on real dat
+**2. Reasoning**
+- Use structured reasoning for analysis tasks such as diagnosing a performance drop or comparing options.
+- Use few-shot examples only for classification tasks with recurring edge cases
 - *When to enforce reasoning:* Multi-factor questions where the answer depends on how evidence is weighed.
 - *When to suppress reasoning:* Simple lookups, formatting, and extraction. Extended reasoning on these adds length and invites errors.
 
-**3. Validation (separate pass)**
-- Run a separate check prompt (Q12 style) on any output that will reach a client.
+**3. Validation**
+- Run a separate check prompt on any output that will reach a client.
 - Require a list of assumptions and a confidence level for each conclusion.
-- Compare numerical outputs back to the source document in a deterministic step, not by asking the model to re-check.
+- Compare numerical outputs back to the source document in a deterministic step, not by asking the model to re check.
 
-**Systematic hallucination reduction**
+**Reduce hallucinations systematically**
 
 - **Source grounding:** Every claim must trace to input text or be marked as an inference.
-- **Explicit unknowns:** Each output includes a "not provided" section.
 - **Separation of stages:** Extraction, reasoning, and validation run as distinct steps, so an error in one is caught by the next.
 - **Testing:** Build a set of 30 to 50 real documents with known answers, and measure how often each prompt invents a value. Change the prompt only when the measured rate changes.
 - **Human review:** Route any client-facing output with a Low confidence rating, or with any field marked "not stated," to a consultant.
 
 ** Why this structure?** The three stages match how consulting work is actually done, and each stage has a different failure risk, so each gets a different prompting approach.
 
-** Why this prompting technique?** A mix, chosen by task: zero-shot for extraction and simple tasks, controlled reasoning for analysis, and few-shot only where tested edge cases justify it.
+** Why this prompting technique?** zero-shot prompting for extraction and simple tasks, controlled reasoning for analysis, and few-shot prompting only where tested edge cases justify it.
 
 ** Failure modes prevented**
 - **Hallucinated extraction:** Source sentences required for each value.
-- **Reasoning overreach:** Reasoning is limited to tasks that need it.
-- **Unvalidated output:** A separate validation stage with an evaluation set.
-- **Silent errors reaching clients:** Human review is triggered by low confidence or missing dat
-
-**Alternative design:** A single, longer system prompt that handles all three stages in one call. It is simpler to deploy, but errors in one stage are harder to isolate, and it's harder to test each part separately.
+- **Reasoning overdo:** Reasoning is limited to tasks that need it.
+- **Silent errors** Human review is triggered by low confidence or missing data
